@@ -1,4 +1,4 @@
-package org.example.mirai.plugin;
+package org.yinlianlei.dice;
 
 import net.mamoe.mirai.console.plugin.jvm.JavaPlugin;
 import net.mamoe.mirai.console.plugin.jvm.JvmPluginDescription;
@@ -8,7 +8,14 @@ import net.mamoe.mirai.event.EventChannel;
 import net.mamoe.mirai.event.GlobalEventChannel;
 import net.mamoe.mirai.event.events.FriendMessageEvent;
 import net.mamoe.mirai.event.events.GroupMessageEvent;
+import net.mamoe.mirai.event.events.NewFriendRequestEvent;
 
+import net.mamoe.mirai.contact.User;
+import net.mamoe.mirai.contact.Group;
+
+import java.sql.*;
+
+import java.util.ArrayList;
 
 /**
  * 使用 Java 请把
@@ -28,10 +35,18 @@ import net.mamoe.mirai.event.events.GroupMessageEvent;
 
 public final class JavaPluginMain extends JavaPlugin {
     public static final JavaPluginMain INSTANCE = new JavaPluginMain();
+
+    private static final ArkDiceSql sqlCur = new ArkDiceSql();
+
     private JavaPluginMain() {
-        super(new JvmPluginDescriptionBuilder("org.example.mirai-example", "0.1.0")
+        super(new JvmPluginDescriptionBuilder("org.yinlianlei.dice", "0.1.0")
                 .info("EG")
                 .build());
+        try{
+            Class.forName("com.mysql.cj.jdbc.Driver");
+        }catch(Exception e){
+            e.printStackTrace();
+        }
     }
 
     @Override
@@ -40,12 +55,33 @@ public final class JavaPluginMain extends JavaPlugin {
         EventChannel<Event> eventChannel = GlobalEventChannel.INSTANCE.parentScope(this);
         eventChannel.subscribeAlways(GroupMessageEvent.class, g -> {
             //监听群消息
-            getLogger().info(g.getMessage().contentToString());
+           
 
+            User sender = g.getSender();
+            sender.sendMessage(msg);//获取好友后进行回复
+
+            //g.getSubject().sendMessage("23");
         });
         eventChannel.subscribeAlways(FriendMessageEvent.class, f -> {
             //监听好友消息
-            getLogger().info(f.getMessage().contentToString());
+            //getLogger().info(f.getMessage().contentToString());
+            //f.getSubject().sendMessage("23");
+        });
+        //自动同意好友申请
+        GlobalEventChannel.INSTANCE.subscribeAlways(NewFriendRequestEvent.class, event -> {
+            event.accept();
+            //发送初始化介绍
+            User applicant = event.getSender();//申请人
+
+            applicant.sendMessage("贵安，这里是诺莲。");
         });
     }
 }
+
+/*
+            String msg = g.getMessage().contentToString();
+            String[] msgList = msg.split(" ");//进行以" "进行的切割
+            for(String i : msgList){
+                getLogger().info(i);
+            }
+*/
