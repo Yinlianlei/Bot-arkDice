@@ -1,5 +1,7 @@
 package org.yinlianlei.dice;
 
+import net.mamoe.mirai.Bot;
+
 import net.mamoe.mirai.console.plugin.jvm.JavaPlugin;
 import net.mamoe.mirai.console.plugin.jvm.JvmPluginDescription;
 import net.mamoe.mirai.console.plugin.jvm.JvmPluginDescriptionBuilder;
@@ -9,7 +11,9 @@ import net.mamoe.mirai.event.GlobalEventChannel;
 import net.mamoe.mirai.event.events.FriendMessageEvent;
 import net.mamoe.mirai.event.events.GroupMessageEvent;
 import net.mamoe.mirai.event.events.NewFriendRequestEvent;
+import net.mamoe.mirai.event.events.FriendAddEvent;
 
+import net.mamoe.mirai.contact.Friend;
 import net.mamoe.mirai.contact.User;
 import net.mamoe.mirai.contact.Group;
 
@@ -37,6 +41,9 @@ public final class JavaPluginMain extends JavaPlugin {
     public static final JavaPluginMain INSTANCE = new JavaPluginMain();
 
     private static final ArkDiceSql sqlCur = new ArkDiceSql();
+    private static final ArkDiceRoll diceRoll = new ArkDiceRoll();
+
+    protected static int botReplayStat = 1;//0-replay off, 1-replay on
 
     private JavaPluginMain() {
         super(new JvmPluginDescriptionBuilder("org.yinlianlei.dice", "0.1.0")
@@ -55,12 +62,15 @@ public final class JavaPluginMain extends JavaPlugin {
         EventChannel<Event> eventChannel = GlobalEventChannel.INSTANCE.parentScope(this);
         eventChannel.subscribeAlways(GroupMessageEvent.class, g -> {
             //监听群消息
-           
+            String msg = g.getMessage().contentToString();
+            //@2683380854 Yes
+            //getLogger().info(g.getMessage().contentToString());
+            if(msg.charAt(0) == '.' || msg.charAt(0) == '。'){
+                String cmd1 = msg.substring(1).split(" ",2)[0];
 
-            User sender = g.getSender();
-            sender.sendMessage(msg);//获取好友后进行回复
-
-            //g.getSubject().sendMessage("23");
+            }else if(msg.contains("@2683380854") && botReplayStat == 1){ 
+                //process string
+            }
         });
         eventChannel.subscribeAlways(FriendMessageEvent.class, f -> {
             //监听好友消息
@@ -70,13 +80,18 @@ public final class JavaPluginMain extends JavaPlugin {
         //自动同意好友申请
         GlobalEventChannel.INSTANCE.subscribeAlways(NewFriendRequestEvent.class, event -> {
             event.accept();
-            //发送初始化介绍
-            User applicant = event.getSender();//申请人
-
-            applicant.sendMessage("贵安，这里是诺莲。");
         });
     }
 }
+
+/**
+String msg = "233";
+
+            User sender = g.getSender();
+            sender.sendMessage(msg);//获取好友后进行回复
+
+            //g.getSubject().sendMessage("23");
+ */
 
 /*
             String msg = g.getMessage().contentToString();
