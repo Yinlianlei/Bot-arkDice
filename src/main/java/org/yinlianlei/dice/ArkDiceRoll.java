@@ -19,6 +19,7 @@ class ArkDiceRoll{
         int addValue = 0;//修正值
         int difficultValue = 0;//困难度0-一般，1-较难，2-困难，3-较难
         int roll;//roll到的点数
+        int attack = 0;//战斗随机数
         int rollResult = 0;//roll点数的结局
     }
 
@@ -71,30 +72,30 @@ class ArkDiceRoll{
         return re;
     }
 
-    public ArrayList<String> rollDiaglue(String cmd){//输入：n# [难度] [项目] [修正值]
+    public ArrayList<String> rollDiaglue(String cmd,int tf){//cmd输入：n# [难度] [项目] [修正值]//tf是否是rka
         ArrayList<String> re;
         int number = 1;
         if(cmd.contains("#")){
             String[] temp = cmd.replaceAll("\\ ", "").split("#");
             number = Integer.valueOf(temp[0]);
             re = new ArrayList<String>();
-            for(int i =0;i<number;i++){
-                re.addAll(rollFunc(temp[1]));
-            }
+            for(int i =0;i<number;i++)
+                re.addAll(rollFunc(temp[1],tf));
         }else{
-            re = rollFunc(cmd);
+            re = rollFunc(cmd,tf);
         }
 
         return re;
     }
 
-    private ArrayList<String> rollFunc(String cmd){//输入指令：难度，标准值，增值
+    private ArrayList<String> rollFunc(String cmd,int tf){//输入指令：难度，标准值，增值
         ArrayList<DiceRollColum> cmdList = difficultFind(cmd);
 
         //此处为判断roll难度，并判断是否成功，已经成功难度
         for(DiceRollColum i : cmdList){
             i.roll = roll();
-            int tempValue = i.standValue + i.addValue - difficultLevel[i.difficultValue];//减少运算量用
+            i.attack = tf == 1?rollka():0;//战斗否
+            int tempValue = i.standValue + i.addValue + i.attack - difficultLevel[i.difficultValue];//减少运算量用
             //System.out.println(tempValue);
             if(tempValue < 0 || i.roll > 95){//判断大失败
                 i.rollResult = 6;
@@ -122,8 +123,8 @@ class ArkDiceRoll{
         for(int i =0;i<cmdList.size();i++){//对数值进行处理，并使其能够传出去
             String tmp = "";
             DiceRollColum tempOne = cmdList.get(i);
-            //判断类型-roll值-标准值-结果代数
-            tmp += tempOne.colum+"-"+tempOne.roll+"/"+tempOne.standValue+"-"+tempOne.rollResult;
+            //判断类型-roll值/标准值-rka随机值-结果代数
+            tmp += tempOne.colum+"-"+tempOne.roll+"/"+tempOne.standValue+"-"+tempOne.attack+"-"+tempOne.rollResult;
             re.add(tmp);
         }
 
@@ -185,6 +186,11 @@ class ArkDiceRoll{
     private int roll(){//返回值为roll到的点数
         Random r = new Random();
         return r.nextInt(100)+1;
+    }
+
+    private int rollka(){
+        Random r = new Random();
+        return r.nextInt(10)+r.nextInt(10)+2;
     }
 
 }

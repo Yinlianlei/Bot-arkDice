@@ -39,11 +39,8 @@ import java.util.ArrayList;
 
 public final class JavaPluginMain extends JavaPlugin {
     public static final JavaPluginMain INSTANCE = new JavaPluginMain();
-
     private static final ArkDiceSql sqlCur = new ArkDiceSql();
-    private static final ArkDiceRoll diceRoll = new ArkDiceRoll();
-
-    protected static int botReplayStat = 1;//0-replay off, 1-replay on
+    private static ArkDiceLogue adl = new ArkDiceLogue();
 
     private JavaPluginMain() {
         super(new JvmPluginDescriptionBuilder("org.yinlianlei.dice", "0.1.0")
@@ -65,11 +62,11 @@ public final class JavaPluginMain extends JavaPlugin {
             String msg = g.getMessage().contentToString();
             //@2683380854 Yes
             //getLogger().info(g.getMessage().contentToString());
-            if(msg.charAt(0) == '.' || msg.charAt(0) == '。'){
-                String cmd1 = msg.substring(1).split(" ",2)[0];
-
-            }else if(msg.contains("@2683380854") && botReplayStat == 1){ 
-                //process string
+            String re = adl.replayMain(msg);
+            if(re.contains("rh")){
+                g.getSender().sendMessage(re);
+            }else{
+                g.getGroup().sendMessage(re);
             }
         });
         eventChannel.subscribeAlways(FriendMessageEvent.class, f -> {
@@ -85,7 +82,7 @@ public final class JavaPluginMain extends JavaPlugin {
 }
 
 /**
-String msg = "233";
+            String msg = "233";
 
             User sender = g.getSender();
             sender.sendMessage(msg);//获取好友后进行回复
