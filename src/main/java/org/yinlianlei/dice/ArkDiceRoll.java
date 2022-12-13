@@ -1,5 +1,7 @@
 package org.yinlianlei.dice;
 
+import net.mamoe.mirai.event.events.AbstractMessageEvent;
+
 import java.util.Random;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -14,6 +16,7 @@ class ArkDiceRoll{
     final static int[] result = {0,1,2,3,4,5,6};
 
     public class DiceRollColum{//用于记录log用
+        String qq;//用于记录QQ。同时方便查询pl表
         String colum;//类型
         int standValue;//标准值
         int addValue = 0;//修正值
@@ -72,7 +75,7 @@ class ArkDiceRoll{
         return re;
     }
 
-    public ArrayList<String> rollDiaglue(String cmd,int tf){//cmd输入：n# [难度] [项目] [修正值]//tf是否是rka
+    public ArrayList<String> rollDiaglue(String cmd,int tf,String SenderQQ){//cmd输入：n# [难度] [项目] [修正值]//tf是否是rka
         ArrayList<String> re;
         int number = 1;
         if(cmd.contains("#")){
@@ -80,16 +83,16 @@ class ArkDiceRoll{
             number = Integer.valueOf(temp[0]);
             re = new ArrayList<String>();
             for(int i =0;i<number;i++)
-                re.addAll(rollFunc(temp[1],tf));
+                re.addAll(rollFunc(temp[1],tf,SenderQQ));
         }else{
-            re = rollFunc(cmd,tf);
+            re = rollFunc(cmd,tf,SenderQQ);
         }
 
         return re;
     }
 
-    private ArrayList<String> rollFunc(String cmd,int tf){//输入指令：难度，标准值，增值
-        ArrayList<DiceRollColum> cmdList = difficultFind(cmd);
+    private ArrayList<String> rollFunc(String cmd,int tf,String SenderQQ){//输入指令：难度，标准值，增值
+        ArrayList<DiceRollColum> cmdList = difficultFind(cmd,SenderQQ);
 
         //此处为判断roll难度，并判断是否成功，已经成功难度
         for(DiceRollColum i : cmdList){
@@ -131,7 +134,7 @@ class ArkDiceRoll{
         return re;
     }
 
-    private ArrayList<DiceRollColum> difficultFind(String cmd){
+    private ArrayList<DiceRollColum> difficultFind(String cmd,String SenderQQ){
         ArrayList<DiceRollColum> rollList = new ArrayList<DiceRollColum>();
 
         String[] cmdList = cmd.split("&");

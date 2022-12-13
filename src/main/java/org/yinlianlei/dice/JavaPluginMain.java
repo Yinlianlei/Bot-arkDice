@@ -8,6 +8,7 @@ import net.mamoe.mirai.console.plugin.jvm.JvmPluginDescriptionBuilder;
 import net.mamoe.mirai.event.Event;
 import net.mamoe.mirai.event.EventChannel;
 import net.mamoe.mirai.event.GlobalEventChannel;
+import net.mamoe.mirai.event.events.AbstractMessageEvent;
 import net.mamoe.mirai.event.events.FriendMessageEvent;
 import net.mamoe.mirai.event.events.GroupMessageEvent;
 import net.mamoe.mirai.event.events.NewFriendRequestEvent;
@@ -62,9 +63,13 @@ public final class JavaPluginMain extends JavaPlugin {
             String msg = g.getMessage().contentToString();
             //@2683380854 Yes
             //getLogger().info(g.getMessage().contentToString());
-            String re = adl.replayMain(msg);
+            
+            String senderQQ = String.valueOf(g.getSender().getId());
+            String re = adl.replayMain(msg,senderQQ);
             if(re.contains("rh")){
-                g.getSender().sendMessage(re);
+                String[] rhResult = re.split("\\|");
+                g.getGroup().sendMessage(rhResult[1]);
+                g.getSender().sendMessage(rhResult[2]);
             }else{
                 g.getGroup().sendMessage(re);
             }

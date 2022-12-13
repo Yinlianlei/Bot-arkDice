@@ -40,10 +40,10 @@ public class ArkDiceLogue{
     }
 
     //用于进行判断
-    public String replayMain(String input){
+    public String replayMain(String input,String SenderQQ){
         String re = null;
         //对输入的数据进行反应
-        re = replayFunc(input);
+        re = replayFunc(input, SenderQQ);
         //System.out.println(re);
 
         String[] reList = re.split("\\|");//对结果进行处理
@@ -52,7 +52,7 @@ public class ArkDiceLogue{
             case "rk":re=replayRk(reList[1],0);break;
             case "rka":re=replayRk(reList[1],1);break;
             case "ra":re=replayRk(reList[1],0);break;
-            case "rh":re="rh"+replayRh(reList[1]);break;
+            case "rh":re="rh|"++replayRh(reList[1]);break;
             case "r":re=replayR(reList[1]);break;
             default:
                 re = "ERROR!出现问题了，请联系骰主进行解决！";
@@ -62,7 +62,7 @@ public class ArkDiceLogue{
     }
 
     //进行回复的设定
-    private String replayFunc(String msg){
+    private String replayFunc(String msg,String SenderQQ){
         ArrayList<String> returnData = new ArrayList<String>();//获得roll的结果
         String ReString = null;//进行返回用的字符串
         if(msg.charAt(0) == '.' || msg.charAt(0) == '。'){
@@ -70,13 +70,13 @@ public class ArkDiceLogue{
             if(cmd.charAt(0) == 'r'){
                 if(cmd.contains("rk")){//判断是不是要进行判定
                     int tf = cmd.charAt(2) == 'a'?1:0;//攻击是否
-                    returnData = dice.rollDiaglue(cmd.substring(tf+2), tf);
+                    returnData = dice.rollDiaglue(cmd.substring(tf+2), tf, SenderQQ);
                     
                     //相应处理
                     ReString = tf==1?"rka":"rk";
                     ReString += "|"+String.join(",", returnData);//先这样
                 }else if(cmd.contains("ra")){//ra技能判定，讲实话ark中好像就没见过
-                    returnData = dice.rollDiaglue(cmd.substring(2), 0);
+                    returnData = dice.rollDiaglue(cmd.substring(2), 0, SenderQQ);
                     ReString = "ra|"+ String.join(",", returnData);
                 }else if(cmd.contains("rh")){//暗骰
                     ReString = "rh|"+dice.rollndn("1d100");
@@ -113,14 +113,16 @@ public class ArkDiceLogue{
         if(inputList.length == 1){//如果不是联合检定则直接处理
             re = "@sender"+dialogues[7]+"\n";//进行技能判定
             re += rollResult(inputList[0]);
+            re += atf == 1?"(2D10="+inputList[0].split("-")[2]+")":"";//如果是rka则加上随机值
         }else{
             String temp = "";
             re = "@sender"+dialogues[9]+"\n";//进行技能判定
             for(String i : inputList){
                 re += rollResult(i);
                 temp += i.split("-")[3];
-                re += atf == 1?'\n':"(2D10="+i.split("-")[2]+")\n";//如果是rka则加上随机值
+                re += atf == 1?"(2D10="+i.split("-")[2]+")\n":'\n';//如果是rka则加上随机值
             }
+
             if(temp.contains("5") || temp.contains("6")){//结果代数如果有5，6就失败
                 re += dialogues[11];//联合检定失败
             }else{ 
@@ -134,7 +136,7 @@ public class ArkDiceLogue{
     //rh的回复处理
     private String replayRh(String input){
         String re = null;
-        re = "D100=";
+        re = dialogues[13]+"|D100=";
         re += input.split("=")[1];
         return re;
     }
