@@ -15,7 +15,7 @@ import net.mamoe.mirai.event.events.NewFriendRequestEvent;
 import net.mamoe.mirai.event.events.FriendAddEvent;
 
 import net.mamoe.mirai.contact.Friend;
-import net.mamoe.mirai.contact.User;
+import net.mamoe.mirai.contact.Member;
 import net.mamoe.mirai.contact.Group;
 
 import java.sql.*;
@@ -65,7 +65,9 @@ public final class JavaPluginMain extends JavaPlugin {
             //getLogger().info(g.getMessage().contentToString());
             
             String senderQQ = String.valueOf(g.getSender().getId());
+            String senderNick = String.valueOf(g.getSenderName());
             String re = adl.replayMain(msg,senderQQ);
+            re = re.replace("@sender",senderNick);
             if(re.contains("rh")){
                 String[] rhResult = re.split("\\|");
                 g.getGroup().sendMessage(rhResult[1]);

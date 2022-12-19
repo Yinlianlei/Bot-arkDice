@@ -34,8 +34,6 @@ class ArkDiceRoll{
         int num = 1;//一次投几个骰子
         int dice = 100;//一个骰子有多少面
 
-        String re = "";//初始化返回值
-
         input = input.replaceAll("\\ ", "");//消除空格
         input = input.split("\\,|\\，")[0];//将后续的描述清除掉
 
@@ -44,13 +42,22 @@ class ArkDiceRoll{
         //一下三个为获取投骰子的数值赋值
         if(input.contains("#") && m.find()){
             times = Integer.valueOf(m.group());
+            input = input.split("#")[1];
         }
         
-        if(input.split("d")[0].compareTo("") != 0 && m.find()){
-            num = Integer.valueOf(m.group());
-        }
-
-        if(input.split("d")[1].compareTo("") != 0 && m.find()){
+        if(input.contains("d")){
+            String[] temp = input.split("d");
+            if(temp.length != 0){
+                if(temp[0].compareTo("") != 0 && m.find()){
+                    num = Integer.valueOf(m.group());
+                }
+            
+                if(temp[1].compareTo("") != 0 && m.find()){
+                    dice = Integer.valueOf(m.group());
+                }
+            }
+        }else{
+            m.find();
             dice = Integer.valueOf(m.group());
         }
 
@@ -58,6 +65,8 @@ class ArkDiceRoll{
 
         //设定随机值
         Random r = new Random();
+        String re = "";//初始化返回值
+        ArrayList<String> reList = new ArrayList<String>();
         //int total = 0;//总数值
         for(int i = 0;i<times;i++){
             String tempStr = "";
@@ -68,10 +77,12 @@ class ArkDiceRoll{
                 tempStr += "+"+String.valueOf(tempNum);
             }
             //total += sum;
-            //System.out.println(temp);
-            re += tempStr.replaceFirst("\\+", "")+"="+String.valueOf(sum)+"\n";
+            //System.out.println(tempStr);
+            reList.add(tempStr.replaceFirst("\\+", "")+"="+String.valueOf(sum));
         }
-
+        re += String.join("\n", reList);
+        reList.clear();
+        //System.out.println(re);
         return re;
     }
 

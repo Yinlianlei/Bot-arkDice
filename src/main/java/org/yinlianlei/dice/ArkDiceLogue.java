@@ -141,10 +141,12 @@ public class ArkDiceLogue{
         return re;
     }
 
-    //r的回复处理
+   //r的回复处理
+    //2022-12-13修改
     private String replayR(String input){
         String re = null;
-        re = dialogues[12]+"D100="+input.split("=")[1];
+        //System.out.println(input);
+        re = dialogues[12]+String.join(", ", input.split("\n"));
         return re;
     }
 

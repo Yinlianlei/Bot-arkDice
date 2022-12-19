@@ -21,6 +21,8 @@ suspend fun main() {
         fileBasedDeviceInfo()
     }.alsoLogin()
 
+    
+
     MiraiConsole.job.join()
     
 }
