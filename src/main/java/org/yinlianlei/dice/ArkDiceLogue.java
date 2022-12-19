@@ -52,7 +52,7 @@ public class ArkDiceLogue{
             case "rk":re=replayRk(reList[1],0);break;
             case "rka":re=replayRk(reList[1],1);break;
             case "ra":re=replayRk(reList[1],0);break;
-            case "rh":re="rh|"++replayRh(reList[1]);break;
+            case "rh":re="rh|"+replayRh(reList[1]);break;
             case "r":re=replayR(reList[1]);break;
             default:
                 re = "ERROR!出现问题了，请联系骰主进行解决！";
