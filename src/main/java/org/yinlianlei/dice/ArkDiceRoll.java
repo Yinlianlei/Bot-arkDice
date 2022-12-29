@@ -9,6 +9,7 @@ import java.util.ArrayList;
 
 //用于进行roll点
 class ArkDiceRoll{
+    static ArkDiceSql sql;
     Pattern patternNum = Pattern.compile("\\d+");
     final static int[] difficultLevel = {0,10,25,40};//困难度
     final static String[] difficultString = {"一般","较难","困难","极难"};//困难程度
@@ -26,7 +27,7 @@ class ArkDiceRoll{
         int rollResult = 0;//roll点数的结局
     }
 
-    ArkDiceRoll(){}
+    ArkDiceRoll(ArkDiceSql s){sql = s;};//init sql class
 
     public String rollndn(String input){//输入指令：.r n#ndn
         //此为默认值
@@ -118,7 +119,7 @@ class ArkDiceRoll{
             }else if(i.roll < 6){//大成功
                 i.rollResult = 0;
                 //将成功写入数据库//需要判断是否是在水群，不然不加//加个当前群状态就好
-            }else if(i.difficultValue != 0 && i.roll < tempValue){
+            }else if(i.difficultValue != 0 && i.roll <= tempValue){
                 i.rollResult = 4 - i.difficultValue;
             }else{//非难度要求成功，但是分为四种情况
                 for(int j=3;j >= 0;j--){
@@ -154,13 +155,29 @@ class ArkDiceRoll{
             DiceRollColum tempOne = new DiceRollColum();
             i = i.replaceAll("\\ ", "");//消除空格
 
+            //此处为获取难度
+            int c = 0;
+            for(int j=0;j<4;j++){
+                if(i.contains(difficultString[j])){
+                    tempOne.difficultValue = j;
+                }else
+                    c+=1;
+            }
+            if(c==4)//如果没有就直接为一般难度
+                tempOne.difficultValue = 0;
+
+            //数值获取
             String[] in = i.replaceFirst("\\+|-", " ").split(" ");
             
             Matcher m = patternNum.matcher(in[0]);//此处为获取标准值
             if(m.find()){
                 tempOne.standValue = Integer.valueOf(m.group());
             }else{
-                tempOne.standValue = 95;//查询数据库或是pc数值处理
+                in[0] = in[0].replace(difficultString[tempOne.difficultValue],"");
+                //get down
+                int standValue = sql.getPcValue(in[0],SenderQQ);
+                //System.out.println(standValue);
+                tempOne.standValue = standValue;//查询数据库或是pc数值处理
             }
 
             if(in.length == 2){
@@ -179,16 +196,6 @@ class ArkDiceRoll{
             i = i.replaceAll("\\+|-", "");//除掉+-符号
 
             tempOne.colum = i;
-
-            int c = 0;
-            for(int j=0;j<4;j++){//此处为获取难度
-                if(i.contains(difficultString[j])){
-                    tempOne.difficultValue = j;
-                }else
-                    c+=1;
-            }
-            if(c==4)//如果没有就直接为一般难度
-                tempOne.difficultValue = 0;
 
             rollList.add(tempOne);
             //System.out.println(tempOne.colum+" "+tempOne.difficultValue);

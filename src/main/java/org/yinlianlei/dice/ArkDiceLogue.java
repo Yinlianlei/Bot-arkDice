@@ -8,7 +8,8 @@ import java.io.BufferedReader;
 
 public class ArkDiceLogue{
     String[] dialogues;
-    final static ArkDiceRoll dice = new ArkDiceRoll();
+    final static ArkDiceSql sql = new ArkDiceSql();
+    final static ArkDiceRoll dice = new ArkDiceRoll(sql);
     final static String[] rollResultList = {"大成功","极难成功","困难成功","较难成功","成功","失败","大失败"};
 
     ArkDiceLogue(){
@@ -42,6 +43,9 @@ public class ArkDiceLogue{
     //用于进行判断
     public String replayMain(String input,String SenderQQ){
         String re = null;
+
+
+
         //对输入的数据进行反应
         re = replayFunc(input, SenderQQ);
         //System.out.println(re);
@@ -71,7 +75,6 @@ public class ArkDiceLogue{
                 if(cmd.contains("rk")){//判断是不是要进行判定
                     int tf = cmd.charAt(2) == 'a'?1:0;//攻击是否
                     returnData = dice.rollDiaglue(cmd.substring(tf+2), tf, SenderQQ);
-                    
                     //相应处理
                     ReString = tf==1?"rka":"rk";
                     ReString += "|"+String.join(",", returnData);//先这样
