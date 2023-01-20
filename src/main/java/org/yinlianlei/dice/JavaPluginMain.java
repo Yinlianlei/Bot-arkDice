@@ -62,37 +62,20 @@ public final class JavaPluginMain extends JavaPlugin {
             //监听群消息
             String msg = g.getMessage().contentToString();
             //@2683380854 Yes
+            getLogger().info(msg);
             //getLogger().info(g.getMessage().contentToString());
-            if(msg.charAt(0) == '.' || msg.charAt(0) == '。'){
-                String senderQQ = String.valueOf(g.getSender().getId());
-                String senderNick = String.valueOf(g.getSenderName());
-                String re = adl.replayMain(msg,senderQQ);
-                re = re.replace("@sender",senderNick);
-                if(re.contains("rh")){
-                    String[] rhResult = re.split("\\|");
-                    g.getGroup().sendMessage(rhResult[1]);
-                    g.getSender().sendMessage(rhResult[2]);
-                }else{
-                    g.getGroup().sendMessage(re);
-                }
-            }else if(msg.charAt(0) == 't'){
-                String senderQQ = String.valueOf(g.getSender().getId());
-                getLogger().info(String.valueOf(sqlCur.getPcValue(msg.split(" ")[1],senderQQ)));
-            }else if(msg.charAt(0) == 'l'){
-                String senderQQ = String.valueOf(g.getSender().getId());
-                getLogger().info(String.valueOf(sqlCur.getPc(senderQQ)));
-            }else if(msg.contains("tag")){
-                String senderQQ = String.valueOf(g.getSender().getId());
-                getLogger().info(msg);
-                for(String i : msg.split(" ")){
-                    getLogger().info(i);
-                }
-                getLogger().info(String.valueOf(sqlCur.tagPc(msg.split(" ")[1],senderQQ)));
-            }else if(msg.charAt(0) == 'i'){
-                String senderQQ = String.valueOf(g.getSender().getId());
-                getLogger().info(String.valueOf(sqlCur.insert(senderQQ)));
-            }
+            //String senderQQ = String.valueOf(g.getSender().getId());
+            String senderNick = String.valueOf(g.getSenderName());
             
+            String re = adl.msgReply(g,msg);
+            re = re.replace("@sender",senderNick);
+            if(re.contains("rh")){
+                String[] rhResult = re.split("\\|");
+                g.getGroup().sendMessage(rhResult[0]);
+                g.getSender().sendMessage(rhResult[1]);
+            }else{
+                g.getGroup().sendMessage(re);
+            }
         });
         eventChannel.subscribeAlways(FriendMessageEvent.class, f -> {
             //监听好友消息

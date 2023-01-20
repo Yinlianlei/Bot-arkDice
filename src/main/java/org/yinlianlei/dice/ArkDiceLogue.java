@@ -3,8 +3,12 @@ package org.yinlianlei.dice;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
-
 import java.io.BufferedReader;
+
+import net.mamoe.mirai.event.events.AbstractMessageEvent;
+
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class ArkDiceLogue{
     String[] dialogues;
@@ -40,158 +44,111 @@ public class ArkDiceLogue{
         return null;
     }
 
-    //用于进行判断
-    public String replayMain(String input,String SenderQQ){
+    //进行分割
+    public String msgSub(AbstractMessageEvent event,String msg){
         String re = null;
+        
+        if(msg.charAt(0) == 'r'){
+            if(msg.contains("rka")){
+                msg = msg.replaceFirst("rka", "");
 
+                re = "rka" + "|" + dice.check(event, msg, 1);
+            }else if(msg.contains("rk")){
+                msg = msg.replaceFirst("rk", "");
 
+                re = "rk" + "|" + dice.check(event, msg, 0);
+            }else if(msg.contains("ra")){
+                msg = msg.replaceFirst("ra", "");
 
-        //对输入的数据进行反应
-        re = replayFunc(input, SenderQQ);
-        //System.out.println(re);
+                re = "ra" + "|" + dice.check(event, msg, 0);
+            }else if(msg.contains("rh")){
+                msg = msg.replaceFirst("rh", "");
+                
+                re = "rh|" + dice.roll();
+            }else if(msg.contains("r")){
+                msg = msg.replaceFirst("r", "");
 
-        String[] reList = re.split("\\|");//对结果进行处理
-
-        switch(reList[0]){
-            case "rk":re=replayRk(reList[1],0);break;
-            case "rka":re=replayRk(reList[1],1);break;
-            case "ra":re=replayRk(reList[1],0);break;
-            case "rh":re="rh|"+replayRh(reList[1]);break;
-            case "r":re=replayR(reList[1]);break;
-            default:
-                re = "ERROR!出现问题了，请联系骰主进行解决！";
+                re = "r" + "|" + dice.rollndn(msg);
+            }
+        }else if(msg.charAt(0) == 's'){
+            if(msg.contains("st")){
+                //卡录入
+                //属性修改
+            }
         }
-
         return re;
     }
 
-    //进行回复的设定
-    private String replayFunc(String msg,String SenderQQ){
-        ArrayList<String> returnData = new ArrayList<String>();//获得roll的结果
-        String ReString = null;//进行返回用的字符串
-        if(msg.charAt(0) == '.' || msg.charAt(0) == '。'){
-            String cmd = msg.substring(1);//去掉.和。
-            if(cmd.charAt(0) == 'r'){
-                if(cmd.contains("rk")){//判断是不是要进行判定
-                    int tf = cmd.charAt(2) == 'a'?1:0;//攻击是否
-                    returnData = dice.rollDiaglue(cmd.substring(tf+2), tf, SenderQQ);
-                    //相应处理
-                    ReString = tf==1?"rka":"rk";
-                    ReString += "|"+String.join(",", returnData);//先这样
-                }else if(cmd.contains("ra")){//ra技能判定，讲实话ark中好像就没见过
-                    returnData = dice.rollDiaglue(cmd.substring(2), 0, SenderQQ);
-                    ReString = "ra|"+ String.join(",", returnData);
-                }else if(cmd.contains("rh")){//暗骰
-                    ReString = "rh|"+dice.rollndn("1d100");
-                }else{
-                    ReString = "r|" + dice.rollndn(cmd.substring(1));
-                }
-            }
-        }else if(msg.contains("@2683380854")){ //at bot的信息
-
-            //process string
-        }
-
-        //返回格式：判断类型|第一个检定项目-roll/标准值/随即战斗数-结果,第二个....
-        return ReString;
-    }
-
-    //roll结果处理
-    //输入为:鉴定项目-roll/标准值-战斗随机值-结果代数
-    private String rollResult(String input){
-        //System.out.println(input);
-        String[] result = input.split("-");
-        String re = result[0];
+        //进行分割后的处理
+    public String msgReply(AbstractMessageEvent event,String msg){
+        String re = "";
         //进行处理
-        int resultTemp = Integer.valueOf(result[3]);
-        re += "D100="+result[1]+"的结果为: " + rollResultList[resultTemp]+", "+dialogues[resultTemp];
-        return re;
-    }
-    
-    //rk及rka的回复处理
-    private String replayRk(String input,int atf){//第二个参数表达是rka吗
-        String re = null;
-        String[] inputList = input.split(",");//进行二次切分
+        //此为指令
+        if(msg.charAt(0) == '.' || msg.charAt(0) == '。'){
+            msg = msg.substring(1);
+            msg = msg.replaceAll("\\ ", "");
+            re = msgSub(event, msg);
+            
 
-        if(inputList.length == 1){//如果不是联合检定则直接处理
-            re = "@sender"+dialogues[7]+"\n";//进行技能判定
-            re += rollResult(inputList[0]);
-            re += atf == 1?"(2D10="+inputList[0].split("-")[2]+")":"";//如果是rka则加上随机值
-        }else{
-            String temp = "";
-            re = "@sender"+dialogues[9]+"\n";//进行技能判定
-            for(String i : inputList){
-                re += rollResult(i);
-                temp += i.split("-")[3];
-                re += atf == 1?"(2D10="+i.split("-")[2]+")\n":'\n';//如果是rka则加上随机值
-            }
+            String[] temp = re.split("\\|");
 
-            if(temp.contains("5") || temp.contains("6")){//结果代数如果有5，6就失败
-                re += dialogues[11];//联合检定失败
-            }else{ 
-                re += dialogues[10];//联合检定成功
+            if(temp[1].compareTo("null")==0){
+                return "@sender" + dialogues[15];
+            }else{
+                //项目_项目值_roll_攻击_结果
+                //结果处理，进行联合判定的分割处理
+                ArrayList<String> r = new ArrayList<String>();
+                int dialoguesId;
+                if(temp[0].compareTo("rh") == 0){
+                    dialoguesId = 10;
+                    return dialogues[dialoguesId] + "|D100=" + String.valueOf(temp[1]);
+                }else if(temp[0].compareTo("r") == 0){
+                    dialoguesId = 11;
+                    return "@sender" + dialogues[dialoguesId] + ":" + temp[1];
+                }else{
+                    for(String i : temp[1].split(",")){
+                        String[] result = i.split("_");
+
+                        //后续要加上
+                        r.add(result[0] + ":" + result[3] + "-" + result[2] + "-" + result[4]);
+                    }
+                
+                    String[] reFinal = temp[1].split(",");
+
+                    if(reFinal.length != 1){
+                        dialoguesId = 13; //联合判定
+                        for(String i : reFinal){
+                            if(Integer.valueOf(i.split("_")[4]) > 4){
+                                dialoguesId += 1;
+                            }
+                        }
+                    }else if(temp[0].compareTo("rka") == 0){
+                        dialoguesId = 7;
+                    }else if(temp[0].compareTo("rk") == 0){
+                        dialoguesId = 8;
+                    }else if(temp[0].compareTo("ra") == 0){
+                        dialoguesId = 9;
+                    }else{
+                        dialoguesId = 15;
+                        return "@sender" + dialogues[dialoguesId];
+                    }
+
+                    re = " @sender" + dialogues[dialoguesId] + "\n";
+
+                    r.clear();
+                    for(String i : reFinal){
+                        String[] t = i.split("_");
+                        r.add(t[0] + ":" + t[1] + "/" + t[2] + "--" + dialogues[Integer.valueOf(t[4])] + (temp[0].compareTo("rka") == 0?    "   (2d10="+t[3]+")":""));
+                    }
+                }
+                
+                re += String.join("\n", r);
             }
+        }else{//此为自动回复
+
         }
 
-        return re;
-    }
-
-    //rh的回复处理
-    private String replayRh(String input){
-        String re = null;
-        re = dialogues[13]+"|D100=";
-        re += input.split("=")[1];
-        return re;
-    }
-
-   //r的回复处理
-    //2022-12-13修改
-    private String replayR(String input){
-        String re = null;
-        //System.out.println(input);
-        re = dialogues[12]+String.join(", ", input.split("\n"));
         return re;
     }
 
 }
-
-//对话标号
-    /*
-    0-大成功
-    1-极难成功
-    2-困难成功
-    3-较难成功
-    4-一般成功
-    5-失败
-    6-大失败
-    7-bot开启
-    8-bot关闭
-    9-bot到来
-    10-bot离开
-    11-reply开启
-    12-replay关闭
-    13-send发送消息
-    14-ob join加入
-    15-ob exit推出
-    16-ob list列表
-    17-ob clr清除所有ob
-    18-pc tag绑定
-    19-pc show显示绑定属性
-    20-pc show未绑定角色
-    21-pc nn修改绑定角色昵称
-    22-pc cpy复制指定pc
-    23-pc list列出所有pl的所有pc
-    24-pc del删除pc
-    25-pc stat查看pc掷骰记录
-    26-pc clr消除pc掷骰记录
-    27-st 设定pc属性
-    28-st 修改属性
-    29-st show展示某项属性
-    30-st show展示所有属性
-    31-rk 进行技能判断
-    32-rka 进行行动判断
-    33-r roll点
-    34-rh 暗骰
-    35-welcome 欢迎词
-    36-cheat 赌博作弊//xu~
-*/
