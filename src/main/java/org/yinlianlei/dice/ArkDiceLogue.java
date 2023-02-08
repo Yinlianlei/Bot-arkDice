@@ -1,24 +1,31 @@
 package org.yinlianlei.dice;
 
+import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.io.BufferedReader;
-
-import net.mamoe.mirai.event.events.AbstractMessageEvent;
-
+import java.io.BufferedWriter;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class ArkDiceLogue{
+    //用于存储收录的卡
+    //QQ-PcInfo
+    static HashMap<String, ArrayList<PcInfo>> PcList = new HashMap<String, ArrayList<PcInfo>>();
+    static HashMap<String, Integer> PcTag = new HashMap<String, Integer>();
     String[] dialogues;
-    final static ArkDiceSql sql = new ArkDiceSql();
-    final static ArkDiceRoll dice = new ArkDiceRoll(sql);
+    final static ArkDiceRoll dice = new ArkDiceRoll(PcList,PcTag);
     final static String[] rollResultList = {"大成功","极难成功","困难成功","较难成功","成功","失败","大失败"};
+
+    
 
     ArkDiceLogue(){
         dialogues = getInitString();
     }
+
     //取得csv文件中的对话设定
     private String[] getInitString(){//获取初始化csv文件//如果没有就直接返回null
         Path p = Path.of("data/monologue.csv");
@@ -44,23 +51,161 @@ public class ArkDiceLogue{
         return null;
     }
 
+    //对json文件进行写入
+    public String writePcInfo(String json){
+        try {
+            Path p = Path.of("data/test.json");
+            Charset cs = Charset.forName("UTF-8");
+            BufferedWriter bw = Files.newBufferedWriter(p, cs, StandardOpenOption.WRITE);
+            bw.write(json);
+            bw.close();
+        } catch (Exception e) {
+            //TODO: handle exception
+            System.err.println(e.toString());
+        }
+        return null;
+    }
+
+    public String readPcInfo(GroupMessageEvent g){
+        Path p = Path.of("data/test.csv");
+        try{
+            Charset cs = Charset.forName("UTF-8");
+            BufferedReader br = Files.newBufferedReader(p, cs);
+            //读取数据//由于是一行插入，所以可以直接读取
+            String line = br.readLine();
+            br.close();
+
+            if(line == null){//判断是否存在数据    
+                return null;
+            }
+            return line;
+        }catch(Exception e){
+            System.out.println(p.toAbsolutePath());
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    //将属性转化为JSON能够识别的string格式
+    public String map2json(GroupMessageEvent g){
+        String re = "{\"tag\":"+ PcTag.get(g.getSenderId()) +",\"pcItem\":[";
+        
+        ArrayList<PcInfo> tempPcInfoList = PcList.get(g.getSenderId());
+        ArrayList<String> tempItemString = new ArrayList<String>();
+        ArrayList<String> tempItemList = new ArrayList<String>();
+        ArrayList<String> tempNickList = new ArrayList<String>();
+        for(PcInfo i : tempPcInfoList){
+            tempNickList.add("\""+i.pcNick+"\"");
+            for(String j : i.itemList.keySet()){
+                tempItemString.add("\""+j+"\":"+"\"" + i.itemList.get(j) + "\"");
+            }
+            tempItemList.add(String.join(",", tempItemString));
+            tempItemString.clear();
+        }
+
+        for(String i : tempItemList){
+            re += "{" + String.join(",", i) + "}";
+        }
+        re += "],";
+        re += "\"pcNick\":[" + String.join(",", tempNickList) + "]}";
+
+        return re;
+    }
+
+    //录卡用
+    public String extraAllItem(String msg){
+        String re = "";
+
+        //将数据全部抓取
+        ArrayList<String> reList = new ArrayList<String>();//数据列表
+
+        //获取
+        Pattern pattern = Pattern.compile("\\d+.\\d|\\d*\\d");//正则表达式
+        Matcher m = pattern.matcher(msg);
+        while(m.find()){
+            reList.add(m.group());
+        }
+
+        msg = msg.replaceAll("\\d+.\\d|\\d*\\d", "\\,");
+        //System.out.println(msg);
+        String[] temp = msg.split(",");
+        ArrayList<String> itemList = new ArrayList<String>();
+        for(int i = 0;i<temp.length;i++){
+            itemList.add(temp[i]+"-"+reList.get(i));
+        }
+        re = String.join(",", itemList);
+
+        return re;
+    }
+
+    //+-修改用
+    public String updateItem(String msg, GroupMessageEvent g){
+        String re = "";
+
+        String qq = g.getSenderId();
+
+        String[] temp = msg.split(",");
+
+        Pattern pattern = Pattern.compile("\\d+.\\d|\\d*\\d");//正则表达式
+        ArrayList<String> reList = new ArrayList<String>();
+
+
+        for(String i : temp){
+            String value = "",item = "";
+            if(i.contains("+")){
+                i = i.replaceFirst("\\+|\\-", "");
+
+                Matcher m = pattern.matcher(i);
+                if(m.find()){
+                    value = m.group();
+                }
+                item = i.replaceFirst("\\d+.\\d|\\d*\\d", "");
+
+                int tempValue = PcList.get(qq).get(0).itemList.get(item);
+                tempValue += Integer.valueOf(value);
+
+                System.out.println(tempValue);
+
+                value = String.valueOf(tempValue);
+            }else{
+                i = i.replaceAll("\\+|\\-", "");
+
+                Matcher m = pattern.matcher(i);
+                if(m.find()){
+                    value = m.group();
+                }
+                item = i.replaceFirst("\\d+.\\d|\\d*\\d", "");
+
+                int tempValue = PcList.get(qq).get(PcTag.get(qq)).itemList.get(item);
+                tempValue -= Integer.valueOf(value);
+                value = String.valueOf(tempValue);
+            }
+
+            reList.add(item + "-" + value);
+        }
+
+        re = String.join(",", reList);
+
+        return re;
+    }
+
     //进行分割
-    public String msgSub(AbstractMessageEvent event,String msg){
+    public String msgSub(String msg, GroupMessageEvent g){
         String re = null;
         
         if(msg.charAt(0) == 'r'){
             if(msg.contains("rka")){
                 msg = msg.replaceFirst("rka", "");
 
-                re = "rka" + "|" + dice.check(event, msg, 1);
+                re = "rka" + "|" + dice.check(msg, 1, g);
             }else if(msg.contains("rk")){
                 msg = msg.replaceFirst("rk", "");
 
-                re = "rk" + "|" + dice.check(event, msg, 0);
+                re = "rk" + "|" + dice.check(msg, 0, g);
             }else if(msg.contains("ra")){
                 msg = msg.replaceFirst("ra", "");
 
-                re = "ra" + "|" + dice.check(event, msg, 0);
+                re = "ra" + "|" + dice.check(msg, 0, g);
             }else if(msg.contains("rh")){
                 msg = msg.replaceFirst("rh", "");
                 
@@ -72,23 +217,41 @@ public class ArkDiceLogue{
             }
         }else if(msg.charAt(0) == 's'){
             if(msg.contains("st")){
-                //卡录入
-                //属性修改
+                //卡录入√
+                //属性修改√
+                msg = msg.replaceFirst("st", "");
+
+                if(msg.contains("+") || msg.contains("-")){
+                    re = "st" + "|"+ updateItem(msg, g);
+                }else{
+                    re = "st" + "|"+ extraAllItem(msg);
+                }
+            }
+        }else if(msg.charAt(0) == 't'){
+            if(msg.contains("tag")){
+                msg = msg.substring(3);
+                int tag = Integer.valueOf(msg);
+                if(tag + 1 > PcList.get(g.getSenderId()).size()){
+                    re = "tag|tag_out_of_range"; 
+                }else{
+                    PcTag.put(g.getSenderId(), tag);
+                    re = "tag|"; 
+                }
             }
         }
+
         return re;
     }
 
-        //进行分割后的处理
-    public String msgReply(AbstractMessageEvent event,String msg){
+    //进行分割后的处理
+    public String msgReply(String msg, GroupMessageEvent g){
         String re = "";
         //进行处理
         //此为指令
         if(msg.charAt(0) == '.' || msg.charAt(0) == '。'){
             msg = msg.substring(1);
             msg = msg.replaceAll("\\ ", "");
-            re = msgSub(event, msg);
-            
+            re = msgSub(msg, g);
 
             String[] temp = re.split("\\|");
 
@@ -99,13 +262,76 @@ public class ArkDiceLogue{
                 //结果处理，进行联合判定的分割处理
                 ArrayList<String> r = new ArrayList<String>();
                 int dialoguesId;
-                if(temp[0].compareTo("rh") == 0){
+                if(temp[0].compareTo("rh") == 0){//rh
                     dialoguesId = 10;
                     return dialogues[dialoguesId] + "|D100=" + String.valueOf(temp[1]);
-                }else if(temp[0].compareTo("r") == 0){
+                }else if(temp[0].compareTo("r") == 0){//r
                     dialoguesId = 11;
                     return "@sender" + dialogues[dialoguesId] + ":" + temp[1];
-                }else{
+                }else if(temp[0].compareTo("st") == 0){//st
+                    String qq = g.getSenderId();
+                    ArrayList<String> itemList = new ArrayList<String>();
+                    ArrayList<Integer> valueList = new ArrayList<Integer>();
+
+                    for(String i : temp[1].split(",")){
+                        String[] temp2 = i.split("-");
+                        itemList.add(temp2[0]);
+                        if(temp2[1].contains(".")){
+                            valueList.add(Integer.valueOf(temp2[1].split("\\.")[0]));
+                        }else{
+                            valueList.add(Integer.valueOf(temp2[1]));
+                        }
+                    }
+
+                    //未包含qq号处理方式（临时）
+                    //if(PcList.get(qq) == null){
+                    //    PcInfo tempPcInfo = new PcInfo();
+                    //    tempPcInfo.qq = qq;
+                    //    tempPcInfo.pcNick = "角色卡";
+                    //    
+                    //    ArrayList<PcInfo> tempPcInfoList = new ArrayList<PcInfo>();
+                    //    tempPcInfoList.add(tempPcInfo);
+                    //    PcList.put(qq, tempPcInfoList);
+                    //    PcTag.put(qq, 0);
+                    //}
+
+                    if(temp[1].length() >= 124){
+                        PcInfo tempPcInfo = new PcInfo();
+
+                        tempPcInfo.initItem(itemList, valueList);
+                        tempPcInfo.qq = qq;
+                        tempPcInfo.pcNick = "角色卡";
+
+                        ArrayList<PcInfo> tempPcInfoList = new ArrayList<PcInfo>();
+                        tempPcInfoList.add(tempPcInfo);
+                        PcList.put(qq, tempPcInfoList);
+
+                        PcTag.put(qq, PcTag.size());
+
+                        dialoguesId = 16;
+                    }else if(PcList.get(qq) != null){
+                        PcInfo targetPc = PcList.get(qq).get(PcTag.get(qq));
+                        for(int i = 0 ;i<itemList.size(); i++){
+                            targetPc.updateItem(itemList.get(i), valueList.get(i));
+                        }
+                        dialoguesId = 17;
+                    }else{
+                        dialoguesId = 18;
+                    }
+                    
+                    return "@sender " + dialogues[dialoguesId] + "\n";
+                }else if(temp[0].compareTo("tag") == 0){//tag
+                    if(temp[1].compareTo("tag_out_of_range") == 0){
+                        dialoguesId = 20;
+                    }else{
+                        dialoguesId = 19;
+                    }
+                    return re = "@sender " + dialogues[dialoguesId] + "\n";
+                }else if(temp[0].compareTo("template") == 0){//template
+                
+                }else if(temp[0].compareTo("template1") == 0){//template1
+                
+                }else{//rk,rka,ra
                     for(String i : temp[1].split(",")){
                         String[] result = i.split("_");
 
@@ -133,7 +359,7 @@ public class ArkDiceLogue{
                         return "@sender" + dialogues[dialoguesId];
                     }
 
-                    re = " @sender" + dialogues[dialoguesId] + "\n";
+                    re = "@sender " + dialogues[dialoguesId] + "\n";
 
                     r.clear();
                     for(String i : reFinal){
@@ -141,7 +367,7 @@ public class ArkDiceLogue{
                         r.add(t[0] + ":" + t[1] + "/" + t[2] + "--" + dialogues[Integer.valueOf(t[4])] + (temp[0].compareTo("rka") == 0?    "   (2d10="+t[3]+")":""));
                     }
                 }
-                
+
                 re += String.join("\n", r);
             }
         }else{//此为自动回复
@@ -149,6 +375,121 @@ public class ArkDiceLogue{
         }
 
         return re;
+    }
+}
+
+class PlInfo{//读取文件信息用的
+    String qq;//qq号
+    int defaultPc;//默认第几个角色
+
+    //包含每个角色的角色名-属性值
+    HashMap<String,HashMap<String, Integer>> pcList;
+}
+
+class PcInfo{//角色卡信息
+    String qq;//qq号
+    String pcNick;//角色昵称
+    HashMap<String, Integer> itemList;//项目值
+
+    PcInfo(){
+        qq = "";
+        pcNick = "角色卡";
+        itemList = new HashMap<String, Integer>();
+    }
+
+    PcInfo(GroupMessageEvent g, String[] items, Integer[] values){
+        qq = g.getSenderId();
+        pcNick = "角色卡";
+        
+        ArrayList<String> itemList = new ArrayList<String>();
+
+        for(String i : items){
+            itemList.add(i);
+        }
+
+        ArrayList<Integer> valueList = new ArrayList<Integer>();
+        for(Integer i : values){
+            valueList.add(i);
+        }
+
+        initItem(itemList, valueList);
+    }
+
+    //进行项目值初始化
+    public Integer initItem(ArrayList<String> items, ArrayList<Integer> values){
+        try {
+            HashMap<String, Integer> re = new HashMap<String, Integer>();
+            for(int i=0;i<items.size();i++){
+                re.put(items.get(i), values.get(i));
+            }
+            this.itemList = re;
+            return 0;
+        } catch (Exception e) {
+            System.out.println(e.toString());
+            return e.hashCode();
+        }
+    }
+
+    //取得项目值
+    public Integer getItem(String item){
+        try {
+            Integer re = null;
+
+            HashMap<String, Integer> temp = this.itemList;
+
+            re = temp.get(item);
+            if(re == null){
+                return -1;
+            }else{
+                return re.intValue();
+            }
+        } catch (Exception e) {
+            //TODO: handle exception
+            System.out.println(e.toString());
+            return -1;
+        }
+    }
+
+    //进行项目更新
+    public Integer updateItem(String item, Integer value){
+        try {
+            HashMap<String, Integer> temp = this.itemList;
+
+            //确定是否存在这个属性值
+            if(temp.get(item) == null){
+                //如果没有则增加
+                temp.put(item, value);
+            }else{
+                //如果有的话则修改
+                temp.replace(item, value);
+                this.itemList = temp;
+            }
+            return 0;
+        } catch (Exception e) {
+            //TODO: handle exception
+            System.out.println(e.toString());
+            return e.hashCode();
+        }
+    }
+
+    //进行项目删除
+    public Integer removeItem(String item){
+        try {
+            HashMap<String, Integer> temp = this.itemList;
+
+            //确定是否存在这个属性值
+            if(temp.get(item) == null){
+                return -1;
+            }
+            temp.remove(item);
+            this.itemList = temp;
+
+            return 0;
+        } catch (Exception e) {
+            //TODO: handle exception
+            System.out.println(e.toString());
+            return e.hashCode();
+        }
     }
 
 }

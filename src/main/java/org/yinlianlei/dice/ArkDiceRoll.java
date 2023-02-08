@@ -1,14 +1,14 @@
 package org.yinlianlei.dice;
 
 import java.util.ArrayList;
-import net.mamoe.mirai.event.events.AbstractMessageEvent;
-
+import java.util.HashMap;
 import java.util.Random;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class ArkDiceRoll{
-    static ArkDiceSql sql;
+    static HashMap<String, ArrayList<PcInfo>> PcList;
+    static HashMap<String, Integer> PcTag;
     Pattern patternNum = Pattern.compile("\\d+");
     final static int[] difficultLevel = {0,10,25,40};//困难度
     final static String[] difficultString = {"一般","较难","困难","极难"};//困难程度
@@ -27,10 +27,10 @@ public class ArkDiceRoll{
         int rollResult = 0;//roll点数的结局
     }
 
-    ArkDiceRoll(ArkDiceSql s){sql = s;};//init sql class
+    ArkDiceRoll(HashMap<String, ArrayList<PcInfo>> t,HashMap<String, Integer> tt){PcList = t;PcTag = tt;};//init sql class
 
     //项目检定
-    public String check(AbstractMessageEvent event, String msg, int ttk){
+    public String check(String msg, int ttk,GroupMessageEvent g){
         ArrayList<String> rollDataAll = new ArrayList<String>();
         String re = "";
         
@@ -40,7 +40,7 @@ public class ArkDiceRoll{
             rollData.item = extraItem(i);
 
             //项目值
-            rollData.itemValue = extraItemValue(event, i);
+            rollData.itemValue = extraItemValue(i, rollData.item, g);
             if(rollData.itemValue == -1){
                 return null;
             }
@@ -183,7 +183,7 @@ public class ArkDiceRoll{
     }
 
     //项目检定值获取//√
-    public int extraItemValue(AbstractMessageEvent event, String msg){
+    public int extraItemValue(String msg, String item , GroupMessageEvent g){
         String temp = msg;
         for(String i : difficultString){
             temp = temp.replaceAll(i, "");
@@ -194,6 +194,8 @@ public class ArkDiceRoll{
         int re = -1;//返回-1表示出错
         if(items.contains(temp)){
             //sql//操作
+            String qq = g.getSenderId();
+            re = PcList.get(qq).get(PcTag.get(qq)).itemList.get(temp);
         }else{
             Pattern pattern = Pattern.compile("\\d+.\\d|\\d*\\d");//正则表达式
             Matcher m = pattern.matcher(temp);

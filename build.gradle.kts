@@ -15,5 +15,5 @@ repositories {
 }
 
 dependencies {
-    api("mysql:mysql-connector-java:8.0.24")
+    implementation("com.alibaba:fastjson:1.2.83")
 }
