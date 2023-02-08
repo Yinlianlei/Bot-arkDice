@@ -18,8 +18,6 @@ import net.mamoe.mirai.contact.Friend;
 import net.mamoe.mirai.contact.Member;
 import net.mamoe.mirai.contact.Group;
 
-import java.sql.*;
-
 import java.util.ArrayList;
 
 /**
@@ -40,7 +38,6 @@ import java.util.ArrayList;
 
 public final class JavaPluginMain extends JavaPlugin {
     public static final JavaPluginMain INSTANCE = new JavaPluginMain();
-    private static final ArkDiceSql sqlCur = new ArkDiceSql();
     private static ArkDiceLogue adl = new ArkDiceLogue();
 
     private JavaPluginMain() {
@@ -66,15 +63,16 @@ public final class JavaPluginMain extends JavaPlugin {
 
             //getLogger().info(g.getMessage().contentToString());
             //String senderQQ = String.valueOf(g.getSender().getId());
-            
+
             String senderNick = String.valueOf(g.getSenderName());
             
-            String re = adl.msgReply(g,msg);
-            re = re.replace("@sender",senderNick);
-            if(re.contains("rh")){
+            String re = adl.msgReply(msg, g);
+            if(re.contains("@sender"))
+                re = re.replace("@sender",senderNick);
+            if(re.contains("rh|")){
                 String[] rhResult = re.split("\\|");
-                g.getGroup().sendMessage(rhResult[0]);
-                g.getSender().sendMessage(rhResult[1]);
+                g.getGroup().sendMessage(rhResult[1]);
+                g.getSender().sendMessage(rhResult[2]);
             }else{
                 g.getGroup().sendMessage(re);
             }

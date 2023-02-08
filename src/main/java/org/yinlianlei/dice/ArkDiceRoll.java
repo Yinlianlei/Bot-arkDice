@@ -6,9 +6,11 @@ import java.util.Random;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import net.mamoe.mirai.event.events.GroupMessageEvent;
+
 public class ArkDiceRoll{
-    static HashMap<String, ArrayList<PcInfo>> PcList;
-    static HashMap<String, Integer> PcTag;
+    static HashMap<String, ArrayList<PcInfo>> pcList;
+    static HashMap<String, Integer> pcTag;
     Pattern patternNum = Pattern.compile("\\d+");
     final static int[] difficultLevel = {0,10,25,40};//困难度
     final static String[] difficultString = {"一般","较难","困难","极难"};//困难程度
@@ -27,7 +29,7 @@ public class ArkDiceRoll{
         int rollResult = 0;//roll点数的结局
     }
 
-    ArkDiceRoll(HashMap<String, ArrayList<PcInfo>> t,HashMap<String, Integer> tt){PcList = t;PcTag = tt;};//init sql class
+    ArkDiceRoll(HashMap<String, ArrayList<PcInfo>> t,HashMap<String, Integer> tt){pcList = t;pcTag = tt;};//init sql class
 
     //项目检定
     public String check(String msg, int ttk,GroupMessageEvent g){
@@ -195,7 +197,7 @@ public class ArkDiceRoll{
         if(items.contains(temp)){
             //sql//操作
             String qq = String.valueOf(g.getSender().getId());
-            re = PcList.get(qq).get(PcTag.get(qq)).itemList.get(temp);
+            re = pcList.get(qq).get(pcTag.get(qq)).itemList.get(temp);
         }else{
             Pattern pattern = Pattern.compile("\\d+.\\d|\\d*\\d");//正则表达式
             Matcher m = pattern.matcher(temp);
