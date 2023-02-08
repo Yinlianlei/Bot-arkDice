@@ -65,16 +65,19 @@ public final class JavaPluginMain extends JavaPlugin {
             //String senderQQ = String.valueOf(g.getSender().getId());
 
             String senderNick = String.valueOf(g.getSenderName());
-            
-            String re = adl.msgReply(msg, g);
-            if(re.contains("@sender"))
-                re = re.replace("@sender",senderNick);
-            if(re.contains("rh|")){
-                String[] rhResult = re.split("\\|");
-                g.getGroup().sendMessage(rhResult[1]);
-                g.getSender().sendMessage(rhResult[2]);
-            }else{
-                g.getGroup().sendMessage(re);
+            if(msg.charAt(0) == '.' || msg.charAt(0) == '。'){
+                String re = adl.msgReply(msg, g);
+                if(re.contains("@sender"))
+                    re = re.replace("@sender",senderNick);
+                if(re.contains("rh|")){
+                    String[] rhResult = re.split("\\|");
+                    g.getGroup().sendMessage(rhResult[1]);
+                    g.getSender().sendMessage(rhResult[2]);
+                }else{
+                    g.getGroup().sendMessage(re);
+                }
+            }else{//此为自动回复
+
             }
         });
         eventChannel.subscribeAlways(FriendMessageEvent.class, f -> {

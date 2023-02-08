@@ -304,19 +304,32 @@ public class ArkDiceLogue{
                     re = "tag|"; 
                 }
             }
-        }else if(msg.charAt(0) == 'p'){
-            if(msg.contains("pc")){
-                msg = msg.substring(2);
+        }else if(msg.contains("pc")){
+            msg = msg.substring(2);
+            if(msg.contains("list")){
                 ArrayList<PcInfo> tempPcInfo = pcList.get(String.valueOf(g.getSender().getId()));
                 if(tempPcInfo != null){
                     ArrayList<String> temp = new ArrayList<String>();
                     for(int i = 0; i < tempPcInfo.size();i++){
                         temp.add("[" + String.valueOf(i) + "]:" + tempPcInfo.get(i).pcNick);
                     }
-                    re = "pc|" + String.join(",",temp);
+                    re = "pc|list|" + String.join(",",temp);
                     temp.clear();
                 }
+            }else if(msg.contains("show")){
+
             }
+        }else if(msg.contains("nn")){
+            msg = msg.replace("nn","");
+            String qq = String.valueOf(g.getSender().getId());
+            PcInfo tempPcInfo = pcList.get(qq).get(pcTag.get(qq));
+
+            String newNick = msg;
+            String oldNick = tempPcInfo.pcNick;
+
+            pcList.get(qq).get(pcTag.get(qq)).pcNick = newNick;
+
+            re = "nn|已将:" + oldNick + " 改名为:" + newNick;
         }
 
         return re;
@@ -332,7 +345,7 @@ public class ArkDiceLogue{
             msg = msg.replaceAll("\\ ", "");
             re = msgSub(msg, g);
 
-            if(!re.contains("|")){
+            if(re == null || !re.contains("|")){
                 return "@sender" + dialogues[15];
             }
             
@@ -365,9 +378,6 @@ public class ArkDiceLogue{
                             valueList.add(Integer.valueOf(temp2[1]));
                         }
                     }
-
-                    //未包含qq号处理方式
-                    
 
                     if(temp[1].length() >= 100){
                         PcInfo tempPcInfo = new PcInfo();
@@ -422,14 +432,28 @@ public class ArkDiceLogue{
                         dialoguesId = 19;
                     }
                     return re = "@sender " + dialogues[dialoguesId] + "\n";
-                }else if(temp[0].compareTo("pc") == 0){//template
-                    dialoguesId = 22;
-                    return re = "@sender " + dialogues[dialoguesId] + "\n" + re + "\n";
-                }else if(temp[0].compareTo("template") == 0){//template
-                
+                }else if(temp[0].compareTo("pc") == 0){//pc
+                    if(temp[1].compareTo("list") == 0){
+                        dialoguesId = 22;
+                        return re = "@sender " + dialogues[dialoguesId] + "\n" + temp[2] + "\n";
+                    }else if(temp[1].compareTo("nn") == 0){
+                        dialoguesId = 0;
+                    }
+                }else if(temp[0].compareTo("nn") == 0){//nn
+                    dialoguesId = 23;
+
+                    String writeText = map2json(g);
+                    if(writeText != null){
+                        writePcInfo(writeText, g);
+                    }
+
+                    return re = "@sender " + dialogues[dialoguesId] + "\n" + temp[1];
                 }else if(temp[0].compareTo("template1") == 0){//template1
                 
                 }else{//rk,rka,ra
+                    if(temp[0].compareTo("rk") != 0 && temp[0].compareTo("rka") != 0 && temp[0].compareTo("ra") != 0){
+                        return "@sender" + dialogues[15];
+                    }
                     for(String i : temp[1].split(",")){
                         String[] result = i.split("_");
 
@@ -468,10 +492,7 @@ public class ArkDiceLogue{
 
                 re += String.join("\n", r);
             }
-        }else{//此为自动回复
-
         }
-
         return re;
     }
 }
