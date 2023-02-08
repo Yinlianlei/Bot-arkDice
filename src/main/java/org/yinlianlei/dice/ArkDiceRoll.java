@@ -194,16 +194,21 @@ public class ArkDiceRoll{
         temp = temp.split("\\+|\\-")[0];//消除修订值
 
         int re = -1;//返回-1表示出错
-        if(items.contains(temp)){
-            //sql//操作
-            String qq = String.valueOf(g.getSender().getId());
-            re = pcList.get(qq).get(pcTag.get(qq)).itemList.get(temp);
-        }else{
-            Pattern pattern = Pattern.compile("\\d+.\\d|\\d*\\d");//正则表达式
-            Matcher m = pattern.matcher(temp);
-            while(m.find()){
-                re = Integer.valueOf(m.group());
+        try {
+            if(items.contains(temp)){
+                //sql//操作
+                String qq = String.valueOf(g.getSender().getId());
+                re = pcList.get(qq).get(pcTag.get(qq)).itemList.get(temp);
+            }else{
+                Pattern pattern = Pattern.compile("\\d+.\\d|\\d*\\d");//正则表达式
+                Matcher m = pattern.matcher(temp);
+                while(m.find()){
+                    re = Integer.valueOf(m.group());
+                }
             }
+        } catch (Exception e) {
+            //TODO: handle exception
+            e.printStackTrace();
         }
 
         return re;
