@@ -194,7 +194,7 @@ public class ArkDiceRoll{
         int re = -1;//返回-1表示出错
         if(items.contains(temp)){
             //sql//操作
-            String qq = g.getSenderId();
+            String qq = String.valueOf(g.getSender().getId());
             re = PcList.get(qq).get(PcTag.get(qq)).itemList.get(temp);
         }else{
             Pattern pattern = Pattern.compile("\\d+.\\d|\\d*\\d");//正则表达式

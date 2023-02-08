@@ -63,8 +63,10 @@ public final class JavaPluginMain extends JavaPlugin {
             String msg = g.getMessage().contentToString();
             //@2683380854 Yes
             getLogger().info(msg);
+
             //getLogger().info(g.getMessage().contentToString());
             //String senderQQ = String.valueOf(g.getSender().getId());
+            
             String senderNick = String.valueOf(g.getSenderName());
             
             String re = adl.msgReply(g,msg);

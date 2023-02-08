@@ -6,21 +6,29 @@ import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Map;
+import java.util.Iterator;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import com.alibaba.fastjson.*;
+
+import net.mamoe.mirai.event.events.GroupMessageEvent;
+
+import net.mamoe.mirai.contact.Friend;
+import net.mamoe.mirai.contact.Member;
+import net.mamoe.mirai.contact.Group;
+
 public class ArkDiceLogue{
     //用于存储收录的卡
     //QQ-PcInfo
-    static HashMap<String, ArrayList<PcInfo>> PcList = new HashMap<String, ArrayList<PcInfo>>();
+    static HashMap<String, ArrayList<PcInfo>> pcList = new HashMap<String, ArrayList<PcInfo>>();
     static HashMap<String, Integer> PcTag = new HashMap<String, Integer>();
     String[] dialogues;
-    final static ArkDiceRoll dice = new ArkDiceRoll(PcList,PcTag);
+    final static ArkDiceRoll dice = new ArkDiceRoll(pcList,PcTag);
     final static String[] rollResultList = {"大成功","极难成功","困难成功","较难成功","成功","失败","大失败"};
-
-    
 
     ArkDiceLogue(){
         dialogues = getInitString();
@@ -52,22 +60,24 @@ public class ArkDiceLogue{
     }
 
     //对json文件进行写入
-    public String writePcInfo(String json){
+    public String writePcInfo(String json, GroupMessageEvent g){
+        Path p = Path.of("data/pc/"+String.valueOf(g.getSender().getId())+".json");
         try {
-            Path p = Path.of("data/test.json");
             Charset cs = Charset.forName("UTF-8");
             BufferedWriter bw = Files.newBufferedWriter(p, cs, StandardOpenOption.WRITE);
             bw.write(json);
             bw.close();
         } catch (Exception e) {
             //TODO: handle exception
+            System.out.println(p.toAbsolutePath());
             System.err.println(e.toString());
         }
         return null;
     }
 
+    //对json文件进行读取
     public String readPcInfo(GroupMessageEvent g){
-        Path p = Path.of("data/test.csv");
+        Path p = Path.of("data/pc/"+String.valueOf(g.getSender().getId())+".json");
         try{
             Charset cs = Charset.forName("UTF-8");
             BufferedReader br = Files.newBufferedReader(p, cs);
@@ -78,7 +88,39 @@ public class ArkDiceLogue{
             if(line == null){//判断是否存在数据    
                 return null;
             }
-            return line;
+
+            JSONObject json = JSON.parseObject(line);
+            //System.out.println(json.toJSONString());
+
+            HashMap<String, ArrayList<PcInfo>> pcList = new HashMap<String, ArrayList<PcInfo>>();
+            HashMap<String, Integer> pcTag = new HashMap<String, Integer>();
+
+            ArrayList<PcInfo> itemValue = new ArrayList<PcInfo>();
+
+            ArrayList<String> items = new ArrayList<String>();
+            ArrayList<Integer> values = new ArrayList<Integer>();
+
+            int tagValue = (int)json.get("tag");
+            //System.out.println(tagValue);
+            pcTag.put(qq, tagValue - 1);
+            
+            JSONArray jsonArray = (JSONArray)json.get("pcItem");
+            JSONArray jsonNick = (JSONArray)json.get("pcNick");
+
+            for(int i = 0; i < jsonArray.size(); i++){
+                JSONObject jsonObject = (JSONObject)jsonArray.get(i);
+                for(Map.Entry<String, Object> entry : jsonObject.entrySet()){
+                    items.add((String)entry.getKey());// 获得key
+                    values.add(Integer.valueOf((String)entry.getValue()));// 获得value
+                }
+
+                PcInfo tempPcInfo = new PcInfo(g,items,values, String.valueOf(jsonNick.get(i)));
+                itemValue.add(tempPcInfo);
+            }
+
+            pcList.put(qq, itemValue);
+
+            return "";
         }catch(Exception e){
             System.out.println(p.toAbsolutePath());
             e.printStackTrace();
@@ -88,9 +130,9 @@ public class ArkDiceLogue{
 
     //将属性转化为JSON能够识别的string格式
     public String map2json(GroupMessageEvent g){
-        String re = "{\"tag\":"+ PcTag.get(g.getSenderId()) +",\"pcItem\":[";
+        String re = "{\"tag\":"+ pcTag.get(g.getSenderId()) +",\"pcItem\":[";
         
-        ArrayList<PcInfo> tempPcInfoList = PcList.get(g.getSenderId());
+        ArrayList<PcInfo> tempPcInfoList = pcList.get(g.getSenderId());
         ArrayList<String> tempItemString = new ArrayList<String>();
         ArrayList<String> tempItemList = new ArrayList<String>();
         ArrayList<String> tempNickList = new ArrayList<String>();
@@ -99,13 +141,11 @@ public class ArkDiceLogue{
             for(String j : i.itemList.keySet()){
                 tempItemString.add("\""+j+"\":"+"\"" + i.itemList.get(j) + "\"");
             }
-            tempItemList.add(String.join(",", tempItemString));
+            tempItemList.add("{" +String.join(",", tempItemString) + "}");
             tempItemString.clear();
         }
 
-        for(String i : tempItemList){
-            re += "{" + String.join(",", i) + "}";
-        }
+        re += String.join(",", tempItemList);
         re += "],";
         re += "\"pcNick\":[" + String.join(",", tempNickList) + "]}";
 
@@ -142,7 +182,7 @@ public class ArkDiceLogue{
     public String updateItem(String msg, GroupMessageEvent g){
         String re = "";
 
-        String qq = g.getSenderId();
+        String qq = String.valueOf(g.getSender().getId());
 
         String[] temp = msg.split(",");
 
@@ -161,7 +201,7 @@ public class ArkDiceLogue{
                 }
                 item = i.replaceFirst("\\d+.\\d|\\d*\\d", "");
 
-                int tempValue = PcList.get(qq).get(0).itemList.get(item);
+                int tempValue = pcList.get(qq).get(0).itemList.get(item);
                 tempValue += Integer.valueOf(value);
 
                 System.out.println(tempValue);
@@ -176,7 +216,7 @@ public class ArkDiceLogue{
                 }
                 item = i.replaceFirst("\\d+.\\d|\\d*\\d", "");
 
-                int tempValue = PcList.get(qq).get(PcTag.get(qq)).itemList.get(item);
+                int tempValue = pcList.get(qq).get(PcTag.get(qq)).itemList.get(item);
                 tempValue -= Integer.valueOf(value);
                 value = String.valueOf(tempValue);
             }
@@ -231,10 +271,10 @@ public class ArkDiceLogue{
             if(msg.contains("tag")){
                 msg = msg.substring(3);
                 int tag = Integer.valueOf(msg);
-                if(tag + 1 > PcList.get(g.getSenderId()).size()){
+                if(tag + 1 > pcList.get(String.valueOf(g.getSender().getId())).size()){
                     re = "tag|tag_out_of_range"; 
                 }else{
-                    PcTag.put(g.getSenderId(), tag);
+                    PcTag.put(String.valueOf(g.getSender().getId()), tag);
                     re = "tag|"; 
                 }
             }
@@ -269,7 +309,7 @@ public class ArkDiceLogue{
                     dialoguesId = 11;
                     return "@sender" + dialogues[dialoguesId] + ":" + temp[1];
                 }else if(temp[0].compareTo("st") == 0){//st
-                    String qq = g.getSenderId();
+                    String qq = String.valueOf(g.getSender().getId());
                     ArrayList<String> itemList = new ArrayList<String>();
                     ArrayList<Integer> valueList = new ArrayList<Integer>();
 
@@ -284,14 +324,14 @@ public class ArkDiceLogue{
                     }
 
                     //未包含qq号处理方式（临时）
-                    //if(PcList.get(qq) == null){
+                    //if(pcList.get(qq) == null){
                     //    PcInfo tempPcInfo = new PcInfo();
                     //    tempPcInfo.qq = qq;
                     //    tempPcInfo.pcNick = "角色卡";
                     //    
                     //    ArrayList<PcInfo> tempPcInfoList = new ArrayList<PcInfo>();
                     //    tempPcInfoList.add(tempPcInfo);
-                    //    PcList.put(qq, tempPcInfoList);
+                    //    pcList.put(qq, tempPcInfoList);
                     //    PcTag.put(qq, 0);
                     //}
 
@@ -302,15 +342,21 @@ public class ArkDiceLogue{
                         tempPcInfo.qq = qq;
                         tempPcInfo.pcNick = "角色卡";
 
-                        ArrayList<PcInfo> tempPcInfoList = new ArrayList<PcInfo>();
-                        tempPcInfoList.add(tempPcInfo);
-                        PcList.put(qq, tempPcInfoList);
+                        if(pcList.get(qq) == null){
+                            ArrayList<PcInfo> tempPcInfoList = new ArrayList<PcInfo>();
+                            tempPcInfoList.add(tempPcInfo);
+                            pcList.put(qq, tempPcInfoList);
+                        }else{
+                            ArrayList<PcInfo> tempPcInfoList = pcList.get(qq);
+                            tempPcInfoList.add(tempPcInfo);
+                            pcList.put(qq, tempPcInfoList);
+                        }
 
-                        PcTag.put(qq, PcTag.size());
+                        pcTag.put(qq, pcList.get(qq).size());
 
                         dialoguesId = 16;
-                    }else if(PcList.get(qq) != null){
-                        PcInfo targetPc = PcList.get(qq).get(PcTag.get(qq));
+                    }else if(pcList.get(qq) != null){
+                        PcInfo targetPc = pcList.get(qq).get(pcTag.get(qq));
                         for(int i = 0 ;i<itemList.size(); i++){
                             targetPc.updateItem(itemList.get(i), valueList.get(i));
                         }
@@ -318,6 +364,7 @@ public class ArkDiceLogue{
                     }else{
                         dialoguesId = 18;
                     }
+                    writePcInfo(map2json(qq));
                     
                     return "@sender " + dialogues[dialoguesId] + "\n";
                 }else if(temp[0].compareTo("tag") == 0){//tag
@@ -378,14 +425,6 @@ public class ArkDiceLogue{
     }
 }
 
-class PlInfo{//读取文件信息用的
-    String qq;//qq号
-    int defaultPc;//默认第几个角色
-
-    //包含每个角色的角色名-属性值
-    HashMap<String,HashMap<String, Integer>> pcList;
-}
-
 class PcInfo{//角色卡信息
     String qq;//qq号
     String pcNick;//角色昵称
@@ -397,8 +436,21 @@ class PcInfo{//角色卡信息
         itemList = new HashMap<String, Integer>();
     }
 
-    PcInfo(GroupMessageEvent g, String[] items, Integer[] values){
+    PcInfo(GroupMessageEvent g){
+        qq = String.valueOf(g.getSender().getId());
+        pcNick = "角色卡";
+        itemList = new HashMap<String, Integer>();
+    }
+
+    PcInfo(GroupMessageEvent g, ArrayList<String> itemList, ArrayList<Integer> valueList){
         qq = g.getSenderId();
+        pcNick = "角色卡";
+        initItem(itemList, valueList);
+    }
+
+
+    PcInfo(GroupMessageEvent g, String[] items, Integer[] values){
+        qq = String.valueOf(g.getSender().getId());
         pcNick = "角色卡";
         
         ArrayList<String> itemList = new ArrayList<String>();
@@ -412,6 +464,12 @@ class PcInfo{//角色卡信息
             valueList.add(i);
         }
 
+        initItem(itemList, valueList);
+    }
+
+    PcInfo(GroupMessageEvent g, ArrayList<String> itemList, ArrayList<Integer> valueList, String nick){
+        qq = String.valueOf(g.getSender().getId());
+        pcNick = nick;
         initItem(itemList, valueList);
     }
 
