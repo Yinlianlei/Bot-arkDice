@@ -39,6 +39,7 @@ import java.util.ArrayList;
 public final class JavaPluginMain extends JavaPlugin {
     public static final JavaPluginMain INSTANCE = new JavaPluginMain();
     private static ArkDiceLogue adl = new ArkDiceLogue();
+    private static ArkDiceReplay arp = new ArkDiceReplay();
 
     private JavaPluginMain() {
         super(new JvmPluginDescriptionBuilder("org.yinlianlei.dice", "0.1.0")
@@ -65,6 +66,7 @@ public final class JavaPluginMain extends JavaPlugin {
             //String senderQQ = String.valueOf(g.getSender().getId());
 
             String senderNick = String.valueOf(g.getSenderName());
+
             if(msg.charAt(0) == '.' || msg.charAt(0) == '。'){
                 String re = adl.msgReply(msg, g);
                 if(re.contains("@sender"))
@@ -77,7 +79,7 @@ public final class JavaPluginMain extends JavaPlugin {
                     g.getGroup().sendMessage(re);
                 }
             }else{//此为自动回复
-
+                arp.keywordReplay(msg);
             }
         });
         eventChannel.subscribeAlways(FriendMessageEvent.class, f -> {
